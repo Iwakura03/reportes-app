@@ -10,7 +10,7 @@ import {
 
 import "leaflet/dist/leaflet.css";
 
-// Coordenadas predeterminadas: San Miguel de Allende
+// Coordenadas de magdalena, Jalisco, México
 const DEFAULT_POSITION = [20.9086744, -103.9815141];
 
 // Componente encargado de mover el mapa
