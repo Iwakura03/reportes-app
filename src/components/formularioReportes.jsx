@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Send } from "lucide-react";
-
+import { useAuth } from "../context/useAuth";
 import { supabase } from "../lib/supabaseClient";
 
 export default function FormularioReporte({ position }) {

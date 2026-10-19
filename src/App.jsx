@@ -1,13 +1,22 @@
-import Mapa from "./components/Mapa";
+import { Route, Routes } from "react-router";
+
+import Encabezado from "./components/encabezado";
+import Inicio from "./pages/Inicio";
+import Login from "./pages/Login";
+import Registro from "./pages/Registro";
 
 export default function App() {
   return (
-    <main className="min-h-screen bg-white p-6">
-      <h1 className="mb-5 text-2xl font-bold">
-        Ubicación del dispositivo
-      </h1>
+    <div className="min-h-screen bg-white">
+      <Encabezado />
 
-      <Mapa />
-    </main>
+      <main className="p-6">
+        <Routes>
+          <Route path="/" element={<Inicio />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
