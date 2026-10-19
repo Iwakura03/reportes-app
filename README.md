@@ -1,16 +1,17 @@
-# React + Vite
+# Reportes ciudadanos
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web para que los habitantes de un municipio reporten problemas de la vía pública (baches, alumbrado, basura, fugas de agua, etc.) marcando el punto exacto en un mapa. El personal municipal puede revisar los reportes, cambiar su estado y publicar respuestas.
 
-Currently, two official plugins are available:
+El proyecto está pensado inicialmente para **Magdalena, Jalisco (México)**, aunque puede usarse en cualquier municipio.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+> Estado: en desarrollo. Ya se pueden crear reportes desde el mapa y gestionar cuentas; el panel administrativo y la consulta publica siguen pendientes,
 
-## React Compiler
+## Funcionalidades
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Disponibles**
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- Mapa interactivo (OpenStreetMap + Leaflet) centrado en la ubicación del dispositivo, con un punto predeterminado si no se concede el permiso.
+- Marcador que se puede arrastrar para ajustar la ubicación exacta del problema.
+- Formulario de reporte con categoría, título y descripción.
+- Registro con confirmación por correo, inicio y cierre de sesión.
+- Los reportes se pueden enviar **con o sin cuenta**; si hay sesión, el reporte queda asociado al usuario.
