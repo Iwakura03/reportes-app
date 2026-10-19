@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -9,6 +9,8 @@ import {
 } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
+
+import FormularioReporte from "./formularioReportes";
 
 // Coordenadas de magdalena, Jalisco, México
 const DEFAULT_POSITION = [20.9086744, -103.9815141];
@@ -29,7 +31,25 @@ function MapUpdater({ position }) {
 
 export default function MapView() {
   const [position, setPosition] = useState(DEFAULT_POSITION);
+  // Centro del mapa: solo cambia con la geolocalización, no al arrastrar el marcador
+  const [center, setCenter] = useState(DEFAULT_POSITION);
   const [status, setStatus] = useState("loading");
+  const [moved, setMoved] = useState(false);
+  const markerRef = useRef(null);
+
+  const markerEvents = useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker) {
+          const { lat, lng } = marker.getLatLng();
+          setPosition([lat, lng]);
+          setMoved(true);
+        }
+      },
+    }),
+    []
+  );
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -42,6 +62,7 @@ export default function MapView() {
         const { latitude, longitude } = location.coords;
 
         setPosition([latitude, longitude]);
+        setCenter([latitude, longitude]);
         setStatus("success");
       },
       () => {
@@ -73,11 +94,12 @@ export default function MapView() {
           <p className="text-amber-700">
             No se pudo obtener la ubicación.
             Se muestran las coordenadas predeterminadas.
+            Puedes mover el marcador para seleccionar la ubicación deseada.
           </p>
         )}
       </div>
 
-      <div className="h-[500px] w-full overflow-hidden rounded-xl shadow-lg">
+      <div className="relative h-[500px] w-full overflow-hidden rounded-xl shadow-lg">
         <MapContainer
           center={DEFAULT_POSITION}
           zoom={13}
@@ -89,16 +111,25 @@ export default function MapView() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          <MapUpdater position={position} />
+          <MapUpdater position={center} />
 
-          <Marker position={position}>
+          <Marker
+            position={position}
+            draggable={true}
+            eventHandlers={markerEvents}
+            ref={markerRef}
+          >
             <Popup>
-              {status === "success"
+              {moved
+                ? "Ubicación seleccionada"
+                : status === "success"
                 ? "Ubicación actual del dispositivo"
                 : "Ubicación predeterminada"}
             </Popup>
           </Marker>
         </MapContainer>
+
+        <FormularioReporte position={position} />
       </div>
 
       <p className="text-sm text-gray-600">
