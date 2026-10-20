@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Send } from "lucide-react";
-import { useAuth } from "../context/useAuth";
+import { ChevronDown, ChevronUp, ImagePlus, Send, X } from "lucide-react";
+import imageCompression from "browser-image-compression";
 import { supabase } from "../lib/supabaseClient";
 
 export default function FormularioReporte({ position }) {
@@ -12,7 +12,16 @@ export default function FormularioReporte({ position }) {
   const [descripcion, setDescripcion] = useState("");
   // { tipo: "error" | "exito", mensaje } o null
   const [alerta, setAlerta] = useState(null);
+  // false, "foto" (subiendo la imagen) o "datos" (guardando el reporte)
   const [enviando, setEnviando] = useState(false);
+  // { archivo, preview } o null
+  const [foto, setFoto] = useState(null);
+
+  // Libera la URL de la vista previa al cambiar de foto o al desmontar
+  useEffect(() => {
+    if (!foto) return;
+    return () => URL.revokeObjectURL(foto.preview);
+  }, [foto]);
 
   useEffect(() => {
     let cancelado = false;
@@ -42,6 +51,48 @@ export default function FormularioReporte({ position }) {
     };
   }, []);
 
+  function handleFoto(event) {
+    const archivo = event.target.files[0];
+    // Permite volver a elegir el mismo archivo después de quitarlo
+    event.target.value = "";
+    if (!archivo) return;
+
+    if (!archivo.type.startsWith("image/")) {
+      setAlerta({ tipo: "error", mensaje: "El archivo debe ser una imagen." });
+      return;
+    }
+
+    if (archivo.size > 15 * 1024 * 1024) {
+      setAlerta({
+        tipo: "error",
+        mensaje: "La imagen es demasiado grande (máximo 15 MB).",
+      });
+      return;
+    }
+
+    setAlerta(null);
+    setFoto({ archivo, preview: URL.createObjectURL(archivo) });
+  }
+
+  async function subirFoto() {
+    // Recomprimir también elimina los metadatos EXIF (incluido el GPS)
+    const comprimida = await imageCompression(foto.archivo, {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1600,
+      fileType: "image/webp",
+      useWebWorker: true,
+    });
+
+    // La política del bucket solo permite subir dentro de "reportes/"
+    const ruta = `reportes/${crypto.randomUUID()}.webp`;
+    const { error } = await supabase.storage
+      .from("fotos-reportes")
+      .upload(ruta, comprimida, { contentType: "image/webp" });
+
+    if (error) throw error;
+    return ruta;
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -65,16 +116,36 @@ export default function FormularioReporte({ position }) {
       return;
     }
 
-    setEnviando(true);
     setAlerta(null);
 
-    // estado, usuario_id y fechas los llena el trigger de la base de datos
+    let fotoPath = null;
+    if (foto) {
+      setEnviando("foto");
+      try {
+        fotoPath = await subirFoto();
+      } catch (err) {
+        console.error(err);
+        setEnviando(false);
+        setAlerta({
+          tipo: "error",
+          mensaje: "No se pudo subir la foto. Intenta de nuevo.",
+        });
+        return;
+      }
+    }
+
+    setEnviando("datos");
+
+    // estado, usuario_id y fechas los llena el trigger de la base de datos.
+    // Si este insert falla, la foto ya subida queda huérfana: los usuarios
+    // anónimos no pueden borrar del bucket (solo los admins).
     const { error } = await supabase.from("reportes").insert({
       titulo: tituloLimpio,
       descripcion: descripcion.trim(),
       categoria_id: Number(categoriaId),
       // PostGIS espera primero la longitud y luego la latitud
       ubicacion: `SRID=4326;POINT(${position[1]} ${position[0]})`,
+      foto_path: fotoPath,
     });
 
     setEnviando(false);
@@ -91,6 +162,7 @@ export default function FormularioReporte({ position }) {
     setAlerta({ tipo: "exito", mensaje: "¡Reporte enviado! Gracias." });
     setTitulo("");
     setDescripcion("");
+    setFoto(null);
   }
 
   return (
@@ -175,6 +247,37 @@ export default function FormularioReporte({ position }) {
                 />
               </div>
 
+              {foto ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={foto.preview}
+                    alt="Vista previa de la foto"
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFoto(null)}
+                    disabled={Boolean(enviando)}
+                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600 disabled:opacity-60"
+                  >
+                    <X className="h-4 w-4" />
+                    Quitar foto
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 p-2 text-sm text-gray-600 hover:bg-gray-50">
+                  <ImagePlus className="h-4 w-4" />
+                  <span>Agregar foto (opcional)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFoto}
+                    disabled={Boolean(enviando)}
+                    className="sr-only"
+                  />
+                </label>
+              )}
+
               <p className="text-xs text-gray-500">
                 Ubicación: {position[0].toFixed(6)}, {position[1].toFixed(6)}
               </p>
@@ -198,7 +301,13 @@ export default function FormularioReporte({ position }) {
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 p-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Send className="h-4 w-4" />
-                <span>{enviando ? "Enviando..." : "Enviar Reporte"}</span>
+                <span>
+                  {enviando === "foto"
+                    ? "Subiendo foto..."
+                    : enviando
+                      ? "Enviando..."
+                      : "Enviar Reporte"}
+                </span>
               </button>
             </form>
           </div>

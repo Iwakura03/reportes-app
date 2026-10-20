@@ -9,6 +9,7 @@ export default function AuthProvider({ children }) {
   const [cargando, setCargando] = useState(true);
 
   const user = session?.user ?? null;
+  const userId = user?.id;
 
   // 1) Escuchar la sesión
   useEffect(() => {
@@ -22,14 +23,14 @@ export default function AuthProvider({ children }) {
 
   // 2) Cargar el perfil (nombre y rol) cuando cambia el usuario
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     let cancelado = false;
 
     supabase
       .from("perfiles")
       .select("id, nombre, rol")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single()
       .then(({ data }) => {
         if (!cancelado) setPerfil(data);
@@ -38,7 +39,7 @@ export default function AuthProvider({ children }) {
     return () => {
       cancelado = true;
     };
-  }, [user?.id]);
+  }, [userId]);
 
   // Solo usamos el perfil si corresponde al usuario actual
   const perfilActual = user && perfil?.id === user.id ? perfil : null;
