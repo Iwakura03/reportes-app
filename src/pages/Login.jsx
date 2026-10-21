@@ -3,6 +3,10 @@ import { Link, Navigate } from "react-router";
 
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/useAuth";
+import Boton from "../components/ui/Boton";
+import Campo from "../components/ui/Campo";
+import TarjetaAcceso from "../components/ui/TarjetaAcceso";
+import { claseControl } from "../components/ui/clases";
 
 export default function Login() {
   const { user } = useAuth();
@@ -36,33 +40,33 @@ export default function Login() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-3">
-      <h2 className="text-xl font-bold">Iniciar sesión</h2>
+    <TarjetaAcceso titulo="Iniciar sesión" subtitulo="Entra para dar seguimiento a tus reportes.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Campo id="email" etiqueta="Correo">
+          <input
+            id="email" type="email" required autoComplete="email"
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            className={claseControl}
+          />
+        </Campo>
+        <Campo id="password" etiqueta="Contraseña">
+          <input
+            id="password" type="password" required autoComplete="current-password"
+            value={password} onChange={(e) => setPassword(e.target.value)}
+            className={claseControl}
+          />
+        </Campo>
 
-      <input
-        type="email" required placeholder="Correo" autoComplete="email"
-        value={email} onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 p-2"
-      />
-      <input
-        type="password" required placeholder="Contraseña" autoComplete="current-password"
-        value={password} onChange={(e) => setPassword(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 p-2"
-      />
+        {error && <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
 
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        <Boton type="submit" cargando={enviando}>
+          {enviando ? "Entrando..." : "Entrar"}
+        </Boton>
 
-      <button
-        type="submit" disabled={enviando}
-        className="w-full rounded-lg bg-blue-600 p-2.5 font-medium text-white disabled:opacity-60"
-      >
-        {enviando ? "Entrando..." : "Entrar"}
-      </button>
-
-      <p className="text-sm">
-        ¿No tienes cuenta? <Link to="/registro" className="text-blue-600">Regístrate</Link>
-      </p>
-    </form>
+        <p className="text-center text-sm text-slate-600">
+          ¿No tienes cuenta? <Link to="/registro" className="font-medium text-marca-700 hover:underline">Regístrate</Link>
+        </p>
+      </form>
+    </TarjetaAcceso>
   );
 }
-

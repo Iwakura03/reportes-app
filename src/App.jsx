@@ -7,10 +7,11 @@ import Registro from "./pages/Registro";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="flex h-svh flex-col">
       <Encabezado />
 
-      <main className="p-6">
+      {/* El mapa ocupa todo el alto disponible; las demás páginas hacen scroll aquí */}
+      <main className="relative flex-1 overflow-y-auto">
         <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/login" element={<Login />} />

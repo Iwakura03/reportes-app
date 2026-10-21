@@ -3,6 +3,10 @@ import { Link, Navigate } from "react-router";
 
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/useAuth";
+import Boton from "../components/ui/Boton";
+import Campo from "../components/ui/Campo";
+import TarjetaAcceso from "../components/ui/TarjetaAcceso";
+import { claseControl } from "../components/ui/clases";
 
 export default function Registro() {
   const { user } = useAuth();
@@ -54,45 +58,51 @@ export default function Registro() {
 
   if (revisaCorreo) {
     return (
-      <div className="mx-auto max-w-sm rounded-lg bg-green-50 p-4 text-green-700">
-        Te enviamos un correo a <b>{email}</b>. Abre el enlace para activar tu cuenta.
-      </div>
+      <TarjetaAcceso titulo="Revisa tu correo">
+        <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+          Te enviamos un correo a <b>{email}</b>. Abre el enlace para activar tu cuenta.
+        </p>
+      </TarjetaAcceso>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-sm space-y-3">
-      <h2 className="text-xl font-bold">Crear cuenta</h2>
+    <TarjetaAcceso titulo="Crear cuenta" subtitulo="Regístrate para dar seguimiento a tus reportes.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Campo id="nombre" etiqueta="Nombre">
+          <input
+            id="nombre" type="text" required maxLength={80} autoComplete="name"
+            value={nombre} onChange={(e) => setNombre(e.target.value)}
+            className={claseControl}
+          />
+        </Campo>
+        <Campo id="email" etiqueta="Correo">
+          <input
+            id="email" type="email" required autoComplete="email"
+            value={email} onChange={(e) => setEmail(e.target.value)}
+            className={claseControl}
+          />
+        </Campo>
+        <Campo id="password" etiqueta="Contraseña">
+          <input
+            id="password" type="password" required autoComplete="new-password"
+            aria-describedby="password-ayuda"
+            value={password} onChange={(e) => setPassword(e.target.value)}
+            className={claseControl}
+          />
+          <p id="password-ayuda" className="text-xs text-slate-500">Mínimo 6 caracteres.</p>
+        </Campo>
 
-      <input
-        type="text" required maxLength={80} placeholder="Nombre"
-        value={nombre} onChange={(e) => setNombre(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 p-2"
-      />
-      <input
-        type="email" required placeholder="Correo" autoComplete="email"
-        value={email} onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 p-2"
-      />
-      <input
-        type="password" required placeholder="Contraseña" autoComplete="new-password"
-        value={password} onChange={(e) => setPassword(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 p-2"
-      />
+        {error && <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
 
-      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        <Boton type="submit" cargando={enviando}>
+          {enviando ? "Creando cuenta..." : "Registrarme"}
+        </Boton>
 
-      <button
-        type="submit" disabled={enviando}
-        className="w-full rounded-lg bg-blue-600 p-2.5 font-medium text-white disabled:opacity-60"
-      >
-        {enviando ? "Creando cuenta..." : "Registrarme"}
-      </button>
-
-      <p className="text-sm">
-        ¿Ya tienes cuenta? <Link to="/login" className="text-blue-600">Inicia sesión</Link>
-      </p>
-    </form>
+        <p className="text-center text-sm text-slate-600">
+          ¿Ya tienes cuenta? <Link to="/login" className="font-medium text-marca-700 hover:underline">Inicia sesión</Link>
+        </p>
+      </form>
+    </TarjetaAcceso>
   );
 }
-

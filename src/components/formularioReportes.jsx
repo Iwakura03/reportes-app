@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, ImagePlus, Send, X } from "lucide-react";
+import { ImagePlus, Send, X } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { supabase } from "../lib/supabaseClient";
+import { COLUMNAS_REPORTE } from "../lib/reportes";
+import Boton from "./ui/Boton";
+import Campo from "./ui/Campo";
+import { claseControl } from "./ui/clases";
 
-export default function FormularioReporte({ position }) {
-  const [abierto, setAbierto] = useState(true);
-  const [categorias, setCategorias] = useState([]);
-  const [cargandoCategorias, setCargandoCategorias] = useState(true);
+// Hoja inferior (en móvil) o tarjeta flotante (en escritorio) para crear un reporte.
+// Se oculta con CSS en vez de desmontarse para no perder lo que ya se escribió.
+export default function FormularioReporte({
+  position,
+  categorias,
+  cargandoCategorias,
+  errorCategorias,
+  abierto,
+  onCerrar,
+  onReporteCreado,
+}) {
   const [categoriaId, setCategoriaId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -17,39 +28,15 @@ export default function FormularioReporte({ position }) {
   // { archivo, preview } o null
   const [foto, setFoto] = useState(null);
 
+  // Mientras no se elija otra, se usa la primera categoría
+  const categoriaElegida =
+    categoriaId || (categorias.length > 0 ? String(categorias[0].id) : "");
+
   // Libera la URL de la vista previa al cambiar de foto o al desmontar
   useEffect(() => {
     if (!foto) return;
     return () => URL.revokeObjectURL(foto.preview);
   }, [foto]);
-
-  useEffect(() => {
-    let cancelado = false;
-
-    supabase
-      .from("categorias")
-      .select("id, nombre")
-      .eq("activa", true)
-      .order("orden")
-      .then(({ data, error }) => {
-        if (cancelado) return;
-
-        if (error) {
-          setAlerta({
-            tipo: "error",
-            mensaje: "No se pudieron cargar las categorías.",
-          });
-        } else {
-          setCategorias(data);
-          if (data.length > 0) setCategoriaId(String(data[0].id));
-        }
-        setCargandoCategorias(false);
-      });
-
-    return () => {
-      cancelado = true;
-    };
-  }, []);
 
   function handleFoto(event) {
     const archivo = event.target.files[0];
@@ -98,7 +85,7 @@ export default function FormularioReporte({ position }) {
 
     const tituloLimpio = titulo.trim();
 
-    if (!categoriaId) {
+    if (!categoriaElegida) {
       setAlerta({ tipo: "error", mensaje: "Selecciona una categoría." });
       return;
     }
@@ -139,14 +126,19 @@ export default function FormularioReporte({ position }) {
     // estado, usuario_id y fechas los llena el trigger de la base de datos.
     // Si este insert falla, la foto ya subida queda huérfana: los usuarios
     // anónimos no pueden borrar del bucket (solo los admins).
-    const { error } = await supabase.from("reportes").insert({
-      titulo: tituloLimpio,
-      descripcion: descripcion.trim(),
-      categoria_id: Number(categoriaId),
-      // PostGIS espera primero la longitud y luego la latitud
-      ubicacion: `SRID=4326;POINT(${position[1]} ${position[0]})`,
-      foto_path: fotoPath,
-    });
+    // .select() devuelve la fila guardada para dibujar su marcador sin recargar
+    const { data, error } = await supabase
+      .from("reportes")
+      .insert({
+        titulo: tituloLimpio,
+        descripcion: descripcion.trim(),
+        categoria_id: Number(categoriaElegida),
+        // PostGIS espera primero la longitud y luego la latitud
+        ubicacion: `SRID=4326;POINT(${position[1]} ${position[0]})`,
+        foto_path: fotoPath,
+      })
+      .select(COLUMNAS_REPORTE)
+      .single();
 
     setEnviando(false);
 
@@ -159,159 +151,144 @@ export default function FormularioReporte({ position }) {
       return;
     }
 
-    setAlerta({ tipo: "exito", mensaje: "¡Reporte enviado! Gracias." });
+    // El mapa cierra el formulario y avisa que se envió
+    onReporteCreado?.(data);
     setTitulo("");
     setDescripcion("");
     setFoto(null);
   }
 
+  const aviso = alerta ?? (errorCategorias
+    ? { tipo: "error", mensaje: "No se pudieron cargar las categorías." }
+    : null);
+
   return (
-    <div className="absolute inset-x-0 bottom-0 z-[1000] mx-auto w-full sm:bottom-3 sm:max-w-md">
-      <div className="rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
-        {/* Pestaña para abrir/cerrar */}
-        <button
-          type="button"
-          onClick={() => setAbierto((valor) => !valor)}
-          aria-label="Abrir u ocultar formulario"
-          aria-expanded={abierto}
-          className="flex w-full flex-col items-center gap-1 pt-2 pb-1 text-xs text-gray-500 hover:text-gray-700"
-        >
-          <span className="h-1.5 w-10 rounded-full bg-gray-300" />
-          <span className="flex items-center gap-1">
-            {abierto ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronUp className="h-3 w-3" />
-            )}
-            {abierto ? "Ocultar" : "Mostrar"}
-          </span>
-        </button>
-
-        {abierto && (
-          <div className="space-y-3 px-4 pb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Crear Nuevo Reporte</h3>
-              <span className="text-xs text-gray-500">
-                Arrastra el marcador azul para ajustar la ubicación exacta
-              </span>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div className="space-y-1">
-                <label htmlFor="categoria" className="text-sm font-medium">
-                  Categoría del problema
-                </label>
-                <select
-                  id="categoria"
-                  value={categoriaId}
-                  onChange={(e) => setCategoriaId(e.target.value)}
-                  disabled={cargandoCategorias}
-                  className="w-full rounded-lg border border-gray-300 bg-white p-2 text-sm"
-                >
-                  {cargandoCategorias && <option value="">Cargando...</option>}
-                  {categorias.map((categoria) => (
-                    <option key={categoria.id} value={categoria.id}>
-                      {categoria.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="titulo" className="text-sm font-medium">
-                  Título
-                </label>
-                <input
-                  id="titulo"
-                  type="text"
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  maxLength={120}
-                  placeholder="Ej: Bache grande en la calle Hidalgo"
-                  className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="descripcion" className="text-sm font-medium">
-                  Descripción
-                </label>
-                <textarea
-                  id="descripcion"
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  rows={2}
-                  maxLength={2000}
-                  placeholder="Ej: Enfrente de la escuela X, hay muchos baches..."
-                  className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-                />
-              </div>
-
-              {foto ? (
-                <div className="flex items-center gap-3">
-                  <img
-                    src={foto.preview}
-                    alt="Vista previa de la foto"
-                    className="h-16 w-16 rounded-lg object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFoto(null)}
-                    disabled={Boolean(enviando)}
-                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-600 disabled:opacity-60"
-                  >
-                    <X className="h-4 w-4" />
-                    Quitar foto
-                  </button>
-                </div>
-              ) : (
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 p-2 text-sm text-gray-600 hover:bg-gray-50">
-                  <ImagePlus className="h-4 w-4" />
-                  <span>Agregar foto (opcional)</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFoto}
-                    disabled={Boolean(enviando)}
-                    className="sr-only"
-                  />
-                </label>
-              )}
-
-              <p className="text-xs text-gray-500">
-                Ubicación: {position[0].toFixed(6)}, {position[1].toFixed(6)}
-              </p>
-
-              {alerta && (
-                <div
-                  role="alert"
-                  className={`rounded-lg p-2 text-sm ${
-                    alerta.tipo === "error"
-                      ? "bg-red-50 text-red-700"
-                      : "bg-green-50 text-green-700"
-                  }`}
-                >
-                  {alerta.mensaje}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={enviando || cargandoCategorias}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 p-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Send className="h-4 w-4" />
-                <span>
-                  {enviando === "foto"
-                    ? "Subiendo foto..."
-                    : enviando
-                      ? "Enviando..."
-                      : "Enviar Reporte"}
-                </span>
-              </button>
-            </form>
+    <div
+      className={`absolute inset-x-0 bottom-0 z-[1000] sm:bottom-4 sm:left-4 sm:right-auto sm:w-96 ${
+        abierto ? "" : "hidden"
+      }`}
+    >
+      <div className="max-h-[65svh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:max-h-[calc(100svh-8rem)] sm:rounded-2xl">
+        <div className="sticky top-0 flex items-start justify-between gap-2 bg-white px-4 pt-4 pb-2">
+          <div>
+            <h2 className="text-lg font-semibold">Nuevo reporte</h2>
+            <p className="text-xs text-slate-600">
+              Toca el mapa o arrastra el marcador azul para marcar el lugar exacto.
+            </p>
           </div>
-        )}
+          <button
+            type="button"
+            onClick={onCerrar}
+            aria-label="Cerrar formulario"
+            className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-500"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3 px-4 pb-4">
+          <Campo id="categoria" etiqueta="Categoría del problema">
+            <select
+              id="categoria"
+              value={categoriaElegida}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              disabled={cargandoCategorias}
+              className={claseControl}
+            >
+              {cargandoCategorias && <option value="">Cargando...</option>}
+              {categorias.map((categoria) => (
+                <option key={categoria.id} value={categoria.id}>
+                  {categoria.nombre}
+                </option>
+              ))}
+            </select>
+          </Campo>
+
+          <Campo id="titulo" etiqueta="Título" contador={`${titulo.length}/120`}>
+            <input
+              id="titulo"
+              type="text"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              maxLength={120}
+              placeholder="Ej: Bache grande en la calle Hidalgo"
+              className={claseControl}
+            />
+          </Campo>
+
+          <Campo
+            id="descripcion"
+            etiqueta="Descripción"
+            contador={`${descripcion.length}/2000`}
+          >
+            <textarea
+              id="descripcion"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              placeholder="Ej: Enfrente de la escuela X, hay muchos baches..."
+              className={claseControl}
+            />
+          </Campo>
+
+          {foto ? (
+            <div className="flex items-center gap-3">
+              <img
+                src={foto.preview}
+                alt="Vista previa de la foto"
+                className="h-16 w-16 rounded-lg object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setFoto(null)}
+                disabled={Boolean(enviando)}
+                className="flex items-center gap-1 text-sm text-slate-600 hover:text-red-600 disabled:opacity-60"
+              >
+                <X className="h-4 w-4" />
+                Quitar foto
+              </button>
+            </div>
+          ) : (
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-600 hover:bg-slate-50 focus-within:ring-2 focus-within:ring-marca-500">
+              <ImagePlus className="h-4 w-4" />
+              <span>Agregar foto (opcional)</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFoto}
+                disabled={Boolean(enviando)}
+                className="sr-only"
+              />
+            </label>
+          )}
+
+          {aviso && (
+            <div
+              role="alert"
+              className={`rounded-lg p-2 text-sm ${
+                aviso.tipo === "error"
+                  ? "bg-red-50 text-red-700"
+                  : "bg-green-50 text-green-700"
+              }`}
+            >
+              {aviso.mensaje}
+            </div>
+          )}
+
+          <Boton
+            type="submit"
+            icono={Send}
+            cargando={Boolean(enviando)}
+            disabled={cargandoCategorias}
+          >
+            {enviando === "foto"
+              ? "Subiendo foto..."
+              : enviando
+                ? "Enviando..."
+                : "Enviar reporte"}
+          </Boton>
+        </form>
       </div>
     </div>
   );
