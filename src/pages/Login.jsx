@@ -57,6 +57,12 @@ export default function Login() {
           />
         </Campo>
 
+        <div className="text-right">
+          <Link to="/recuperar" className="text-sm font-medium text-marca-700 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+
         {error && <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
 
         <Boton type="submit" cargando={enviando}>

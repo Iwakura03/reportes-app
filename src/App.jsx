@@ -4,6 +4,8 @@ import Encabezado from "./components/encabezado";
 import Inicio from "./pages/Inicio";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
+import RecuperarContrasena from "./pages/RecuperarContrasena";
+import NuevaContrasena from "./pages/NuevaContrasena";
 
 export default function App() {
   return (
@@ -16,6 +18,8 @@ export default function App() {
           <Route path="/" element={<Inicio />} />
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/recuperar" element={<RecuperarContrasena />} />
+          <Route path="/nueva-contrasena" element={<NuevaContrasena />} />
         </Routes>
       </main>
     </div>
