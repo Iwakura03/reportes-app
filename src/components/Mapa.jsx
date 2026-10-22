@@ -10,7 +10,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { CircleCheck, LoaderCircle, LocateFixed, Plus } from "lucide-react";
+import { CircleCheck, LoaderCircle, Plus } from "lucide-react";
 
 import "leaflet/dist/leaflet.css";
 //el formulario, que se muestra encima del mapa.
@@ -327,13 +327,9 @@ export default function MapView() {
         disabled={status === "loading"}
         title="Ir a mi ubicación"
         aria-label="Ir a mi ubicación"
-        className="absolute bottom-28 right-2.5 z-[1000] flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-700 shadow-md transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-500 disabled:cursor-wait disabled:opacity-60"
+        className="absolute bottom-28 right-2.5 z-[1000] flex h-11 w-11 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-700 shadow-md transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marca-500 disabled:cursor-wait disabled:opacity-60"
       >
-        {status === "loading" ? (
-          <LoaderCircle className="h-5 w-5 animate-spin" />
-        ) : (
-          <LocateFixed className="h-5 w-5" />
-        )}
+        {status === "loading" ? "..." : "GPS"}
       </button>
 
       {!formAbierto && (
