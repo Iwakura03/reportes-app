@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { LogOut, MapPin } from "lucide-react";
-
+import Boton from "./ui/Boton";
 import { useAuth } from "../context/useAuth";
 
 export default function Encabezado() {
