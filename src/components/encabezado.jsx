@@ -2,11 +2,12 @@ import { Link } from "react-router";
 import { LogOut, MapPin } from "lucide-react";
 import Boton from "./ui/Boton";
 import { useAuth } from "../context/useAuth";
+import {useNavigate} from "react-router";
 
 export default function Encabezado() {
   const { user, perfil, cargando, cerrarSesion } = useAuth();
   const nombre = perfil?.nombre || user?.email || "";
-
+  const navigate = useNavigate();
   return (
     <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5 sm:px-6">
       <Link to="/" className="flex items-center gap-2 text-base font-bold sm:text-lg">
