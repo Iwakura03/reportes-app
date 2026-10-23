@@ -1,4 +1,5 @@
-# Reportes ciudadanos
+# Sistema web de gestion y monitoreo de reportes ciudadanos
+### Nombre corto: reportApp
 
 Aplicación web para que los habitantes de un municipio reporten problemas de la vía pública (baches, alumbrado, basura, fugas de agua, etc.) marcando el punto exacto en un mapa. El personal municipal puede revisar los reportes, cambiar su estado y publicar respuestas.
 
