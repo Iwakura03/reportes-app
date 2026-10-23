@@ -24,7 +24,7 @@ export default function RecuperarContrasena() {
     setEnviando(false);
 
     if (error) {
-      setError(error.message);
+      setError("Hubo un error al enviar el correo");
     } else {
       setExito(true);
     }
