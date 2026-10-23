@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import RecuperarContrasena from "./pages/RecuperarContrasena";
 import NuevaContrasena from "./pages/NuevaContrasena";
+import DetalleReporte from "./pages/DetalleReporte";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/registro" element={<Registro />} />
           <Route path="/recuperar" element={<RecuperarContrasena />} />
           <Route path="/nueva-contrasena" element={<NuevaContrasena />} />
+          <Route path="/reporte/:id" element={<DetalleReporte />} />
         </Routes>
       </main>
     </div>

@@ -1,17 +1,9 @@
 //importaciones
 import { useEffect, useMemo, useRef } from "react";
 import { Marker, Popup } from "react-leaflet";
+import { Link } from "react-router";
 import L from "leaflet";
-import { urlFoto } from "../lib/reportes";
-
-//diccionario de estados, con el color de su etiqueta.
-const ESTADOS = {
-  pendiente: { texto: "Pendiente", clases: "bg-amber-100 text-amber-800" },
-  en_revision: { texto: "En revisión", clases: "bg-sky-100 text-sky-800" },
-  en_proceso: { texto: "En proceso", clases: "bg-indigo-100 text-indigo-800" },
-  resuelto: { texto: "Resuelto", clases: "bg-green-100 text-green-800" },
-  rechazado: { texto: "Rechazado", clases: "bg-slate-200 text-slate-700" },
-};
+import { infoEstado, urlFoto } from "../lib/reportes";
 
 // Círculo del color de la categoría, para distinguirlo del marcador azul de ubicacion.
 function crearIcono(color) {
@@ -29,10 +21,7 @@ export default function MarcadorReporte({ reporte, abrir = false }) {
   const color = reporte.categoria?.color ?? "#475569";
   const icono = useMemo(() => crearIcono(color), [color]);
   const foto = urlFoto(reporte.foto_path);
-  const estado = ESTADOS[reporte.estado] ?? {
-    texto: reporte.estado,
-    clases: "bg-slate-100 text-slate-700",
-  };
+  const estado = infoEstado(reporte.estado);
   const markerRef = useRef(null);
 
   useEffect(() => {
@@ -65,6 +54,12 @@ export default function MarcadorReporte({ reporte, abrir = false }) {
             </span>
             {new Date(reporte.created_at).toLocaleDateString("es-MX")}
           </div>
+          <Link
+            to={`/reporte/${reporte.id}`}
+            className="block pt-1 text-sm font-medium !text-marca-600 hover:underline"
+          >
+            Ver detalle y seguimiento
+          </Link>
         </div>
       </Popup>
     </Marker>
